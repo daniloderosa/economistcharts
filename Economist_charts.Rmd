@@ -1,0 +1,188 @@
+---
+title: "Economist charts"
+author: "Danilo De Rosa"
+date: "7/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message, F)
+```
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(ggthemes)
+library(ggrepel)
+library(ggforce)
+```
+
+# Chart 1
+
+```{r chart-1}
+chart1 <- read_csv(file = "Data for VJ trainees - Chart 1.csv", skip = 5)
+
+chart1 <- chart1 %>% clean_names() 
+
+chart1$financial_year <- as.factor(chart1$financial_year)
+
+chart1 <- chart1 %>% pivot_longer(cols = public_banks:total, names_to = "banks", values_to = "profit")
+
+chart1$banks <- as.factor(chart1$banks)
+
+chart1_total <- chart1 %>% 
+  filter(banks == "total")
+
+theme_set(theme_economist(base_family = "serif")) 
+theme_update(axis.text.x = element_text(margin = margin(t = 2)),
+        axis.text.y = element_text(margin = margin(r = 2)),
+        axis.ticks.length = unit(.25, "cm"),
+        panel.grid.major = element_line(color = "grey90", size = .4),
+        plot.background = element_rect(fill = "white"),
+        plot.caption = element_text(hjust = 0, color = "grey60"),
+        plot.caption.position = "plot",
+        plot.title.position = "plot",
+        plot.title = element_text(face = "bold", margin = margin(b = 5)),
+        legend.title = element_blank(),
+        legend.text = element_text(size = rel(.9), margin = margin(l = -3)),
+        legend.justification = c(0,0))
+
+chart1 %>% 
+  filter(banks != "total") %>%  
+  ggplot(aes(financial_year, profit, fill = banks)) +
+  geom_col() +
+  scale_fill_manual(breaks = c("private_banks", "public_banks"), labels = c("Private", "Public"), name = "Banks", values = c("#2FC1D3","#076FA1", "#ffffff")) +
+  geom_line(data = chart1_total, color = "#454E53", group = 1, size = 1.5) +
+  scale_x_discrete(label = c("2010", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20")) +
+  labs(x = "", y = "", 
+       title = "Public fall", 
+       subtitle = "Net profit of commercial banks in India, $bn",
+       caption = "Sources: Reserve Bank of India; Boston Consulting Group") +
+  annotate(geom = "text", label = "Total", x = "2010", y = 13.5, color = "#454E53", fontface = 2) +
+  theme(plot.subtitle = element_text(margin = margin(b = 15), hjust = 0))
+
+ggsave("chart1.pdf", device = cairo_pdf)
+```
+
+
+
+
+# Chart 2
+
+```{r chart-2}
+chart2 <- read_csv(file = "Data for VJ trainees - Chart 2.csv", skip = 5)
+
+chart2 <- chart2 %>% clean_names() 
+
+chart2 <- chart2 %>% 
+  pivot_longer(cols = china:vietnam, names_to = "country", values_to = "production")
+
+chart2 %>% 
+  ggplot(aes(year, production, color = country)) +
+  annotate(geom = "rect", xmin = 9, xmax = 10, ymin = 80, ymax = 165, fill = "#F0F0F1") +
+  coord_cartesian(clip = "off") +
+  geom_line(aes(group = country), size = 1.3) +
+  scale_x_discrete(label = c("2010", "11", "12", "13", "14", "15", "16", "17", "18", "19")) +
+  scale_y_continuous(limits = c(80, 170), breaks = c(80, 100, 120, 140, 160), expand = c(0.005, 0.005)) + 
+  expand_limits(x = c(0, 12.3)) +
+  scale_color_manual(values = c("#DD706F", "#E0B367", "#737476", "#2CA5AD", "#3B89B2"))+
+  labs(x = "", y = "",
+       subtitle = "Pork production, 2010=100",
+       caption = "Source: United States Department of Agriculture", 
+       title = "Pork chop") +
+  theme(axis.text.y = element_text(margin = margin(r = -3), hjust = 1),
+        legend.position = "none") +
+  annotate(geom = "text", label = "Russia", x = 10.7, y = 165, color = "#737476", fontface = 2) +
+  annotate(geom = "text", label = "Vietnam", x = 10.7, y = 129, color = "#3B89B2", fontface = 2) +
+  annotate(geom = "text", label = "Brazil", x = 10.7, y = 125, color = "#DD706F", fontface = 2, hjust = .7) +
+  annotate(geom = "text", label = "United States", x = 10.7, y = 121, color = "#2CA5AD", fontface = 2, hjust = .3) +
+  annotate(geom = "text", label = "China", x = 10.7, y = 95, color = "#E0B367", fontface = 2, hjust = .7) +
+  annotate(geom = "text", label = "FORECAST", x = 9.5, y = 85, color = "#B2B3B5", fontface = 2)
+
+ggsave("chart2.pdf", device = cairo_pdf)
+```
+
+
+# Chart 3
+
+```{r chart-3}
+chart3 <- read_csv(file = "Data for VJ trainees - Chart 3.csv", skip = 5)
+
+chart3 <- chart3 %>% clean_names() 
+
+chart3 <- chart3 %>% 
+  pivot_longer(cols = alipay_mobile:credit, names_to = "type", values_to = "value") %>% 
+  mutate(year = as.factor(year), 
+         type = factor(type, levels = c("alipay_mobile", "tenpay_mobile", "other_mobile", "debit", "credit")))
+
+chart3 %>% 
+  ggplot(aes(year, value/100, fill = fct_rev(type))) + 
+  geom_col() +
+  scale_y_continuous(expand = c(0,0), labels = scales::percent_format()) +
+  labs(x = "", y = "",
+       subtitle = "Composition of non-cash retail payments in China, %",
+       caption = "Source: Wind", 
+       title = "Pivot to mobile") +
+  scale_fill_manual(values = c("#006CA2", "#ACCDDC", "#E5A7B8", "#CE5B7A", "#7C001A"), labels = c("Credit", "Debit", "Other mobile", "Tenpay (mobile)", "Alipay (mobile)")) +
+  guides(fill = guide_legend(reverse=TRUE)) +
+  theme(axis.text.y = element_text(margin = margin(r = -3), hjust = 1), 
+        plot.subtitle = element_text(margin = margin(b = 10), hjust = 0))
+
+ggsave("chart3.pdf", device = cairo_pdf)
+
+```
+
+
+# Chart 4
+
+```{r chart-4}
+chart4 <- read_csv(file = "Data for VJ trainees - Chart 4.csv", skip = 5)
+
+chart4 <- chart4 %>% clean_names() %>% 
+  rename(one_dose = share_of_population_with_at_least_one_vaccine_dose_percent,
+         new_cases = daily_new_confirmed_case_per_1m_people)
+
+chart4 <- chart4 %>% 
+  mutate(label = if_else(location %in% c("United Kingdom", "Seychelles", "Mongolia", "Cyprus"),
+                 "T", "F"))
+
+chart4_subset <- chart4 %>% 
+  filter(location %in% c("United Kingdom", "Seychelles", "Mongolia", "Cyprus"))
+
+chart4 %>% 
+  ggplot(aes(one_dose, new_cases)) +
+  geom_point(alpha = .4, size = 4, color = "#066EA0") +
+  geom_point(data = chart4_subset, aes(one_dose, new_cases), color = "#EC111A", size = 4) +
+  geom_text_repel(data = chart4_subset, aes(label = location), point.padding = 5, fontface = 2) + 
+  theme(legend.position = "none",
+        axis.text.y = element_text(hjust = 1),
+        axis.title.x = element_text(margin = margin(t = 7)),
+        axis.title.y = element_text(margin = margin(r = 7), angle = 0),
+        plot.subtitle = element_text(hjust = 0)) +
+  labs(y = "",
+       x = "Share of population with at least one vaccine dose, %",
+       caption = "Source: Our World in Data",
+       subtitle = "Data: Covid-19 vaccination doses and daily new cases by country (At July 8th 2021)\n\n\nDaily new confirmed case \nper 1m people",
+       title = "Not slowing down") +
+  scale_y_continuous(limits = c(0, 1100), expand = c(0.01,1)) +
+  scale_x_continuous(limits= c(0, 100), expand = c(0.005,0))
+
+ggsave("chart4.pdf", device = cairo_pdf)
+```
+
+
+```{r conversion, warning=F, message=F}
+## convert PDFs
+pdfs <- list.files(here::here(), pattern = "*.pdf", recursive = TRUE)
+for(pdf in pdfs) {
+  pdftools::pdf_convert(
+    pdf = glue::glue("{here::here()}/{pdf}"), 
+    filenames = glue::glue("{here::here()}/{str_remove(pdf, '.pdf')}.png"),
+    format = "png", dpi = 500
+  )
+}
+```
+
+
+
+
